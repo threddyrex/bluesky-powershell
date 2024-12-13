@@ -5,9 +5,8 @@
 #
 #   Bluesky-Login
 #
-#       Creates a session on the server
-#
-#       TODO: email 2fa
+#   Creates a session on the server
+#   TODO: email 2fa
 #
 # --------------------------------------------------------------------------------------------------------------------
 function Bluesky-Login 
@@ -56,8 +55,7 @@ function Bluesky-Login
 #
 #   Bluesky-GetUnreadCount
 #
-#       Get the number of unread notifications.
-#
+#   Get the number of unread notifications.
 #
 # --------------------------------------------------------------------------------------------------------------------
 function Bluesky-GetUnreadCount
@@ -95,9 +93,8 @@ function Bluesky-GetUnreadCount
 #
 #   Bluesky-Logout
 #
-#       Clears global state.
-#       (Calling deleteSession can delete the refreshJwt, but not the accessJwt - the latter just needs to expire.)
-#
+#   Clears global state.
+#   (Calling deleteSession can delete the refreshJwt, but not the accessJwt - the latter just needs to expire.)
 #
 # --------------------------------------------------------------------------------------------------------------------
 function Bluesky-Logout
