@@ -23,31 +23,43 @@ function Bluesky-Login
         "Content-Type" = "application/json"
     }
 
-    # Log
-    ""
-    "url: $url"
-    ""
-
     # Send request
     $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body $body
     $responseContent = ConvertFrom-Json $response.Content
 
+    # Create hashtable for return
+    $ctx = @{
+        "pds" = $pds
+        "username" = $username
+        "did" = $responseContent.did
+        "accessJwt" = $responseContent.accessJwt
+        "refreshJwt" = $responseContent.refreshJwt
+        "url" = $url
+        "response" = $response
+    }
 
-    # Update global state
-    $global:Bluesky_pds = $pds
-    $global:Bluesky_accessJwt = $responseContent.accessJwt
-    $global:Bluesky_refreshJwt = $responseContent.refreshJwt
+    return $ctx;
 
-
-    # More logging
-    "did: $($responseContent.did)"
-    "email: $($responseContent.email)"
-    "active: $($responseContent.active)"
-    "status: $($responseContent.status)"
-    ""
-    ""
 }
 
+# --------------------------------------------------------------------------------------------------------------------
+#
+#   assertLoginContext
+#
+# --------------------------------------------------------------------------------------------------------------------
+function assertLoginContext
+{
+    param
+    (
+        [Parameter(Mandatory=$true)] $ctx
+    )
+
+    if ($ctx -eq $null) { throw "ctx is null"}
+    if (($ctx -is [hashtable]) -eq $false) { throw "ctx is not a hashtable"}
+    if ($ctx.ContainsKey("pds") -eq $false) { throw "pds missing" }
+    if ($ctx.ContainsKey("accessJwt") -eq $false) { throw "accessJwt is missing" }
+
+}
 
 
 
@@ -60,33 +72,38 @@ function Bluesky-Login
 # --------------------------------------------------------------------------------------------------------------------
 function Bluesky-GetUnreadCount
 {
+    param
+    (
+        [Parameter(Mandatory=$true)] $ctx
+    )
+
+
+    # Check stuff
+    assertLoginContext -ctx $ctx
+
+
     # Setup variables (from global state)
-    $pds = $global:Bluesky_pds
-    $accessJwt = $global:Bluesky_accessJwt
+    $pds = $ctx["pds"]
+    $accessJwt = $ctx["accessJwt"]
     $url = "https://$pds/xrpc/app.bsky.notification.getUnreadCount"
     $headers = @{
         "Authorization" = "Bearer $accessJwt"
     }
 
-    # Log
-    ""
-    "url: $url"
-    ""
-
-    # Check stuff
-    if ($pds -eq $null) { throw "pds is null" }
-    if ($accessJwt -eq $null) { throw "accessJwt is null" }
-
     # Send request
     $response = Invoke-WebRequest -Method GET -Uri $url -Headers $headers
     $responseContent = ConvertFrom-Json $response.Content
 
-    # Log
-    ""
-    ("unread count: " + $responseContent.count)
-    ""
-    ""
+    # Create hashtable for return
+    $ret = @{
+        "url" = $url
+        "count" = $responseContent.count
+        "response" = $response
+    }
+
+    return $ret
 }
+
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -99,33 +116,42 @@ function Bluesky-GetUnreadCount
 # --------------------------------------------------------------------------------------------------------------------
 function Bluesky-Logout
 {
+    param
+    (
+        [Parameter(Mandatory=$true)] $ctx
+    )
+
+    # Check stuff
+    assertLoginContext -ctx $ctx
+
+
     # Setup variables (from global state)
-    $pds = $global:Bluesky_pds
-    $refreshJwt = $global:Bluesky_refreshJwt
+    $pds = $ctx["pds"]
+    $refreshJwt = $ctx["refreshJwt"]
     $url = "https://$pds/xrpc/com.atproto.server.deleteSession"
     $headers = @{"Authorization" = "Bearer $refreshJwt"}
 
-    # Log
-    ""
-    "url: $url"
-    ""
-
     # Send request
+    $response = $null
+    $msg = $null
+
     if(($pds -ne $null) -and ($refreshJwt -ne $null))
     {
-        Invoke-WebRequest -Method POST -Uri $url -Headers $headers
+        $msg = "Sending request."
+        $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers
     }
     else
     {
-        "Not sending request - pds or jwt is null."
-        ""
+        $msg = "Not sending request - pds or jwt is null."
     }
 
+    # Create hashtable for return
+    $ret = @{
+        "url" = $url
+        "msg" = $msg
+        "response" = $response
+    }
 
-    # Update (clear) global state
-    $global:Bluesky_pds = $null
-    $global:Bluesky_accessJwt = $null
-    $global:Bluesky_refreshJwt = $null
-
+    return $ret
 }
 
