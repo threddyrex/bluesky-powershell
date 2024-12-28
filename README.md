@@ -1,7 +1,7 @@
 # bluesky-powershell
 
 I've heard Bluesky programming described as "just a bunch of JSON calls".
-I wanted to prove this out and show simple examples of interacting with the Bluesky APIs.
+I wanted to prove this out and show simple examples of interacting with the Bluesky APIs using PowerShell.
 
 At the moment only a few scenarios are supported. They are below.
 
