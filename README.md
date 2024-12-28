@@ -76,5 +76,5 @@ Bluesky-GetUnreadCount -UserSession $userSession
 This doesn't require auth.
 
 ```powershell
-(Bluesky-GetProfile -Actor "threddyrex.org").responseContent
+Bluesky-GetProfile -Actor "threddyrex.org"
 ```
