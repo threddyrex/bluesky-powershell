@@ -5,59 +5,77 @@
 #
 #   Bluesky-Login
 #
-#   Creates a session on the server
-#   TODO: email 2fa
+#   Creates a session on the server.
+#   https://docs.bsky.app/docs/api/com-atproto-server-create-session
 #
 # --------------------------------------------------------------------------------------------------------------------
-function Bluesky-Login 
+function Bluesky-Login
 {
     param
     (
-        [Parameter(Mandatory=$true)] $pds, [Parameter(Mandatory=$true)] $username, [Parameter(Mandatory=$true)] $password
+        [Parameter(Mandatory=$true)] $UserName, [Parameter(Mandatory=$true)] $Password, $PDS = "bsky.social", $AuthFactorToken = $null
     )
 
     # Setup variables
-    $url = "https://$pds/xrpc/com.atproto.server.createSession"
-    $body = "{`"identifier`":`"$username`", `"password`":`"$password`"}"
+    $url = "https://$PDS/xrpc/com.atproto.server.createSession"
     $headers = @{
         "Content-Type" = "application/json"
     }
-
-    # Send request
-    $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body $body
-    $responseContent = ConvertFrom-Json $response.Content
-
-    # Create hashtable for return
-    $ctx = @{
-        "pds" = $pds
-        "username" = $username
-        "did" = $responseContent.did
-        "accessJwt" = $responseContent.accessJwt
-        "refreshJwt" = $responseContent.refreshJwt
-        "url" = $url
-        "response" = $response
+    $body = $null
+    if ($authFactorToken -eq $null)
+    {
+        $body = "{`"identifier`":`"$UserName`", `"password`":`"$password`"}"
+    }
+    else
+    {
+        $body = "{`"identifier`":`"$UserName`", `"password`":`"$password`", `"authFactorToken`":`"$authFactorToken`"}"
     }
 
-    return $ctx;
 
+    # Send request
+    try
+    {
+        $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body $body
+        $responseContent = ConvertFrom-Json $response.Content
+
+        # Create hashtable for return
+        $session = @{
+            "PDS" = $PDS
+            "UserName" = $UserName
+            "did" = $responseContent.did
+            "accessJwt" = $responseContent.accessJwt
+            "refreshJwt" = $responseContent.refreshJwt
+            "url" = $url
+            "response" = $response
+        }
+
+        return $session;
+    }
+    catch
+    {
+        # Failed. Either user/pass was incorrect, or maybe they need email token.
+        throw "Login failed. $_"
+    }
 }
 
+
+
 # --------------------------------------------------------------------------------------------------------------------
 #
-#   assertLoginContext
+#   assertUserSession
 #
 # --------------------------------------------------------------------------------------------------------------------
-function assertLoginContext
+function assertUserSession
 {
     param
     (
-        [Parameter(Mandatory=$true)] $ctx
+        [Parameter(Mandatory=$true)] $UserSession
     )
 
-    if ($ctx -eq $null) { throw "ctx is null"}
-    if (($ctx -is [hashtable]) -eq $false) { throw "ctx is not a hashtable"}
-    if ($ctx.ContainsKey("pds") -eq $false) { throw "pds missing" }
-    if ($ctx.ContainsKey("accessJwt") -eq $false) { throw "accessJwt is missing" }
+    if ($UserSession -eq $null) { throw "UserSession is null"}
+    if (($UserSession -is [hashtable]) -eq $false) { throw "UserSession is not a hashtable"}
+    if ($UserSession.ContainsKey("pds") -eq $false) { throw "pds missing" }
+    if ($UserSession.ContainsKey("accessJwt") -eq $false) { throw "accessJwt is missing" }
 
 }
 
@@ -68,23 +86,24 @@ function assertLoginContext
 #   Bluesky-GetUnreadCount
 #
 #   Get the number of unread notifications.
+#   https://docs.bsky.app/docs/api/app-bsky-notification-get-unread-count
 #
 # --------------------------------------------------------------------------------------------------------------------
 function Bluesky-GetUnreadCount
 {
     param
     (
-        [Parameter(Mandatory=$true)] $ctx
+        [Parameter(Mandatory=$true)] $UserSession
     )
 
 
     # Check stuff
-    assertLoginContext -ctx $ctx
+    assertUserSession -UserSession $UserSession
 
 
     # Setup variables (from global state)
-    $pds = $ctx["pds"]
-    $accessJwt = $ctx["accessJwt"]
+    $pds = $UserSession["pds"]
+    $accessJwt = $UserSession["accessJwt"]
     $url = "https://$pds/xrpc/app.bsky.notification.getUnreadCount"
     $headers = @{
         "Authorization" = "Bearer $accessJwt"
@@ -118,16 +137,16 @@ function Bluesky-Logout
 {
     param
     (
-        [Parameter(Mandatory=$true)] $ctx
+        [Parameter(Mandatory=$true)] $UserSession
     )
 
     # Check stuff
-    assertLoginContext -ctx $ctx
+    assertUserSession -UserSession $UserSession
 
 
-    # Setup variables (from global state)
-    $pds = $ctx["pds"]
-    $refreshJwt = $ctx["refreshJwt"]
+    # Setup variables
+    $pds = $UserSession["pds"]
+    $refreshJwt = $UserSession["refreshJwt"]
     $url = "https://$pds/xrpc/com.atproto.server.deleteSession"
     $headers = @{"Authorization" = "Bearer $refreshJwt"}
 
