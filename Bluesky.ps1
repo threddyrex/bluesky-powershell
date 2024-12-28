@@ -21,32 +21,30 @@ function Bluesky-Login
     $headers = @{
         "Content-Type" = "application/json"
     }
-    $body = $null
-    if ($authFactorToken -eq $null)
-    {
-        $body = "{`"identifier`":`"$UserName`", `"password`":`"$password`"}"
+    $body = @{ 
+        "identifier" = $UserName 
+        "password" = $Password
     }
-    else
+
+    if ($AuthFactorToken -ne $null)
     {
-        $body = "{`"identifier`":`"$UserName`", `"password`":`"$password`", `"authFactorToken`":`"$authFactorToken`"}"
-    }
+        $body["authFactorToken"] = $AuthFactorToken
+    } 
 
 
     # Send request
     try
     {
-        $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body $body
+        $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body ($body | ConvertTo-Json)
         $responseContent = ConvertFrom-Json $response.Content
 
         # Create hashtable for return
         $session = @{
+            "url" = $url
             "PDS" = $PDS
             "UserName" = $UserName
-            "did" = $responseContent.did
-            "accessJwt" = $responseContent.accessJwt
-            "refreshJwt" = $responseContent.refreshJwt
-            "url" = $url
             "response" = $response
+            "responseContent" = $responseContent
         }
 
         return $session;
@@ -75,7 +73,8 @@ function assertUserSession
     if ($UserSession -eq $null) { throw "UserSession is null"}
     if (($UserSession -is [hashtable]) -eq $false) { throw "UserSession is not a hashtable"}
     if ($UserSession.ContainsKey("pds") -eq $false) { throw "pds missing" }
-    if ($UserSession.ContainsKey("accessJwt") -eq $false) { throw "accessJwt is missing" }
+    if ($UserSession.ContainsKey("responseContent") -eq $false) { throw "responseContent is missing" }
+    if ($UserSession.responseContent.accessJwt -eq $null) { throw "accessJwt is missing" }
 
 }
 
@@ -103,7 +102,7 @@ function Bluesky-GetUnreadCount
 
     # Setup variables (from global state)
     $pds = $UserSession["pds"]
-    $accessJwt = $UserSession["accessJwt"]
+    $accessJwt = $UserSession.responseContent.accessJwt
     $url = "https://$pds/xrpc/app.bsky.notification.getUnreadCount"
     $headers = @{
         "Authorization" = "Bearer $accessJwt"
@@ -116,8 +115,8 @@ function Bluesky-GetUnreadCount
     # Create hashtable for return
     $ret = @{
         "url" = $url
-        "count" = $responseContent.count
         "response" = $response
+        "responseContent" = $responseContent
     }
 
     return $ret
@@ -145,7 +144,7 @@ function Bluesky-Logout
 
     # Setup variables
     $pds = $UserSession["pds"]
-    $refreshJwt = $UserSession["refreshJwt"]
+    $refreshJwt = $UserSession.responseContent.refreshJwt
     $url = "https://$pds/xrpc/com.atproto.server.deleteSession"
     $headers = @{"Authorization" = "Bearer $refreshJwt"}
 
