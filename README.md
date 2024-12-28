@@ -6,27 +6,40 @@ I wanted to prove this out and show simple examples of interacting with the Blue
 At the moment only a few scenarios are supported. They are below.
 
 
-## Dot-source the script to load the functions
+# Dot-source the script to load the functions
 
-[script-scope-and-dot-sourcing](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-7.4#script-scope-and-dot-sourcing)
+You start by [dot-sourcing](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-7.4#script-scope-and-dot-sourcing) 
+the script into your current scope.
+
 
 ```powershell
 . .\Bluesky.ps1
 ```
 
 
-## Login with no email 2fa
+
+# Log in WITHOUT two-factor authentication
+
+If you want to use APIs that require authentication, next step is to log in.
+If you don't have email two-factor authentication turned on, you can use the below script.
 
 ```powershell
 
 $username = "your_username"
 $password = "your_password"
-$session = Bluesky-Login -UserName $username -Password $password
+$userSession = Bluesky-Login -UserName $username -Password $password
 
 ```
 
+If the call succeeds, $userSession will contain the authentication token needed to make 
+subsequent authenticated API calls.
 
-## Login with email 2fa
+
+# Log in WITH two-factor authentication
+
+If you have email two-factor authentication turned on, it requires two calls to "createSession".
+The first call results in Bluesky sending you an email with an auth token. The second call
+completes the login process.
 
 ```powershell
 
@@ -42,11 +55,11 @@ $session = Bluesky-Login -UserName $username -Password $password -AuthFactorToke
 ```
 
 
-## Get user's unread notification count
+# Get user's unread notification count
 
 Using the user session obtained above ⬆️
 
 
 ```powershell
-Bluesky-GetUnreadCount -UserSession $session
+Bluesky-GetUnreadCount -UserSession $userSession
 ```
