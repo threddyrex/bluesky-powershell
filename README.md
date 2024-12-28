@@ -6,6 +6,15 @@ I wanted to prove this out and show simple examples of interacting with the Blue
 At the moment only a few scenarios are supported. They are below.
 
 
+## Dot-source the script to load the functions
+
+[script-scope-and-dot-sourcing](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-7.4#script-scope-and-dot-sourcing)
+
+```powershell
+. .\Bluesky.ps1
+```
+
+
 ## Login with no email 2fa
 
 ```powershell
