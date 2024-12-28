@@ -5,6 +5,7 @@ I wanted to prove this out and show simple examples of interacting with the Blue
 
 At the moment only a few scenarios are supported. They are below.
 
+&nbsp;
 
 # Dot-source the script to load the functions
 
@@ -16,6 +17,7 @@ the script into your current scope.
 . .\Bluesky.ps1
 ```
 
+&nbsp;
 
 
 # Log in WITHOUT two-factor authentication
@@ -33,6 +35,8 @@ $userSession = Bluesky-Login -UserName $username -Password $password
 
 If the call succeeds, $userSession will contain the authentication token needed to make 
 subsequent authenticated API calls.
+
+&nbsp;
 
 
 # Log in WITH two-factor authentication
@@ -54,6 +58,7 @@ $session = Bluesky-Login -UserName $username -Password $password -AuthFactorToke
 
 ```
 
+&nbsp;
 
 # Get user's unread notification count
 
@@ -62,4 +67,14 @@ Using the user session obtained above ⬆️
 
 ```powershell
 Bluesky-GetUnreadCount -UserSession $userSession
+```
+
+&nbsp;
+
+# Get user's profile info
+
+This doesn't require auth.
+
+```powershell
+(Bluesky-GetProfile -Actor "threddyrex.org").responseContent
 ```
