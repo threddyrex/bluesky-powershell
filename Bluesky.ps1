@@ -143,7 +143,6 @@ function Bluesky-Logout
     # Check stuff
     assertUserSession -UserSession $UserSession
 
-
     # Setup variables
     $pds = $UserSession["pds"]
     $refreshJwt = $UserSession["refreshJwt"]
@@ -151,26 +150,52 @@ function Bluesky-Logout
     $headers = @{"Authorization" = "Bearer $refreshJwt"}
 
     # Send request
-    $response = $null
-    $msg = $null
-
     if(($pds -ne $null) -and ($refreshJwt -ne $null))
     {
-        $msg = "Sending request."
-        $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers
+        Invoke-WebRequest -Method POST -Uri $url -Headers $headers
     }
-    else
-    {
-        $msg = "Not sending request - pds or jwt is null."
-    }
-
-    # Create hashtable for return
-    $ret = @{
-        "url" = $url
-        "msg" = $msg
-        "response" = $response
-    }
-
-    return $ret
 }
 
+
+
+# --------------------------------------------------------------------------------------------------------------------
+#
+#   Bluesky-GetProfile
+#
+#   https://docs.bsky.app/docs/api/app-bsky-actor-get-profile
+#   https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=$Actor
+#
+# --------------------------------------------------------------------------------------------------------------------
+function Bluesky-GetProfile
+{
+    param
+    (
+        [Parameter(Mandatory=$true)] $Actor
+    )
+
+    # Setup variables
+    $url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=$Actor"
+
+    # Send request
+    try
+    {
+        $response = Invoke-WebRequest -Method GET -Uri $url
+        $responseContent = ConvertFrom-Json $response.Content
+
+        # Create hashtable for return
+        $ret = @{
+            "url" = $url
+            "Actor" = $Actor
+            "response" = $response
+            "responseContent" = $responseContent
+        }
+
+        return $ret;
+    }
+    catch
+    {
+        # Failed.
+        throw "getProfile failed. $_"
+    }
+
+}
