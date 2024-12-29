@@ -83,7 +83,7 @@ Bluesky-GetProfile -Actor "threddyrex.org"
 
 &nbsp;
 
-# Creating a text post
+# Create a text post
 
 Using the user session obtained above ⬆️
 
