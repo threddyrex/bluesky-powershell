@@ -45,8 +45,6 @@ function Bluesky-CreateSession
         $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body ($body | ConvertTo-Json)
         $responseContent = ConvertFrom-Json $response.Content
 
-        Write-Information "responseContent: $responseContent"
-
         $ret = @{
             "UserName" = $UserName
             "PDS" = $PDS
@@ -54,6 +52,7 @@ function Bluesky-CreateSession
             "AccessJwt" = $responseContent.accessJwt
             "RefreshJwt" = $responseContent.refreshJwt
             "DID" = $responseContent.did
+            "ResponseContent" = $responseContent
         }
 
         return $ret
@@ -80,10 +79,11 @@ function assertSession
     )
 
     Write-Information "assertSession"
-    if ($Session -eq $null) { throw "Session is null"} else { Write-Information "    Session is not null" }
-    if ($Session.PDS -eq $null) { throw "PDS is null"} else { Write-Information "    PDS is not null" }
-    if ($Session.UserName -eq $null) { throw "UserName is null"} else { Write-Information "    UserName is not null" }
-    if ($Session.AccessJwt -eq $null) { throw "AccessJwt is null"} else { Write-Information "    AccessJwt is not null" }
+    if ($Session -eq $null) { throw "Session is null"} else { Write-Information "    ✅ Session is not null" }
+    if ($Session.PDS -eq $null) { throw "PDS is null"} else { Write-Information "    ✅ PDS is not null" }
+    if ($Session.DID -eq $null) { throw "DID is null"} else { Write-Information "    ✅ DID is not null" }
+    if ($Session.UserName -eq $null) { throw "UserName is null"} else { Write-Information "    ✅ UserName is not null" }
+    if ($Session.AccessJwt -eq $null) { throw "AccessJwt is null"} else { Write-Information "    ✅ AccessJwt is not null" }
 
 }
 
@@ -121,16 +121,7 @@ function Bluesky-GetUnreadCount
 
     # Send request
     $response = Invoke-WebRequest -Method GET -Uri $url -Headers $headers
-    $responseContent = ConvertFrom-Json $response.Content
-
-    Write-Information "responseContent: $responseContent"
-
-    # Create return
-    $ret = @{
-        "Count" = $responseContent.count
-    }
-
-    return $ret
+    return (ConvertFrom-Json $response.Content)
 }
 
 
