@@ -16,7 +16,7 @@ function Bluesky-Login
         [Parameter(Mandatory=$true)] $UserName, [Parameter(Mandatory=$true)] $Password, $PDS = "bsky.social", $AuthFactorToken = $null
     )
 
-    # Setup variables
+    # Set up variables
     $url = "https://$PDS/xrpc/com.atproto.server.createSession"
     $headers = @{
         "Content-Type" = "application/json"
@@ -97,7 +97,7 @@ function Bluesky-GetUnreadCount
     assertUserSession -UserSession $UserSession
 
 
-    # Setup variables (from global state)
+    # Set up variables
     $pds = $UserSession.PDS
     $accessJwt = $UserSession.Response.accessJwt
     $url = "https://$pds/xrpc/app.bsky.notification.getUnreadCount"
@@ -138,7 +138,7 @@ function Bluesky-Logout
     # Check stuff
     assertUserSession -UserSession $UserSession
 
-    # Setup variables
+    # Set up variables
     $pds = $UserSession.PDS
     $refreshJwt = $UserSession.Response.refreshJwt
     $url = "https://$pds/xrpc/com.atproto.server.deleteSession"
@@ -168,7 +168,7 @@ function Bluesky-GetProfile
         [Parameter(Mandatory=$true)] $Actor
     )
 
-    # Setup variables
+    # Set up variables
     $url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=$Actor"
 
     # Send request
@@ -213,23 +213,19 @@ function Bluesky-CreateTextPost
     # Verify that the user session is valid
     assertUserSession -UserSession $UserSession
 
-    # Setup variables 
+    # Set up variables 
     $url = "https://$($UserSession.PDS)/xrpc/com.atproto.repo.createRecord"
     $headers = @{
         "Content-Type" = "application/json"
         "Authorization" = "Bearer $($UserSession.Response.accessJwt)"
     }
-
-    # Create post record
-    $post = @{
-        text = $Text
-        createdAt = [System.DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
-    }
-
     $body = @{
         repo = $UserSession.Response.did
         collection = "app.bsky.feed.post"
-        record = $post
+        record = @{
+            text = $Text
+            createdAt = [System.DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+        }
     }
 
     # Send request
