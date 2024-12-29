@@ -5,6 +5,8 @@ I wanted to prove this out and show simple examples of interacting with the Blue
 
 At the moment only a few scenarios are supported. They are below.
 
+You can view docs for the Bluesky API on their web site: https://docs.bsky.app/docs/get-started
+
 &nbsp;
 
 # Dot-source the script to load the functions
