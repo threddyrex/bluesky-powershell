@@ -48,8 +48,8 @@ function Bluesky-Login
     }
     catch
     {
-        # Failed. Either user/pass was incorrect, or maybe they need email token.
-        throw "Login failed. $_"
+        # Failed. Please check specified user/pass/pds. Also - you may need to retrieve email token.
+        throw "Failed. Please check specified user/pass/pds. Also - you may need to retrieve email token. $_"
     }
 }
 
@@ -71,7 +71,6 @@ function assertUserSession
     if ($UserSession.PDS -eq $null) { throw "PDS is null"}
     if ($UserSession.UserName -eq $null) { throw "UserName is null"}
     if ($UserSession.Response.did -eq $null) { throw "did is null"}
-    if ($UserSession.Response.didDoc -eq $null) { throw "didDoc is null"}
     if ($UserSession.Response.accessJwt -eq $null) { throw "accessJwt is null"}
 
 }
@@ -193,4 +192,49 @@ function Bluesky-GetProfile
         throw "getProfile failed. $_"
     }
 
+}
+
+
+# --------------------------------------------------------------------------------------------------------------------
+#
+#   Bluesky-CreateTextPost
+#
+#   https://docs.bsky.app/docs/get-started#create-a-post (see "CURL" section)
+#
+# --------------------------------------------------------------------------------------------------------------------
+function Bluesky-CreateTextPost
+{
+    param
+    (
+        [Parameter(Mandatory=$true)] $Session,
+        [Parameter(Mandatory=$true)] $Text
+    )
+
+    # Setup variables 
+    $url = "https://$($Session.PDS)/xrpc/com.atproto.repo.createRecord"
+    $headers = @{
+        "Content-Type" = "application/json"
+        "Authorization" = "Bearer $($Session.Response.accessJwt)"
+    }
+
+    # Create post record
+    $post = @{
+        text = $Text
+        createdAt = [System.DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+    }
+
+    $body = @{
+        repo = $Session.Response.did
+        collection = "app.bsky.feed.post"
+        record = $post
+    }
+
+    # Send request
+    try {
+        $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body ($body | ConvertTo-Json)
+        return (ConvertFrom-Json $response.Content)
+    }
+    catch {
+        throw "Failed to create post: $_"
+    }
 }
