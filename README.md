@@ -22,7 +22,7 @@ the script into your current scope.
 &nbsp;
 
 
-# Log in WITHOUT two-factor authentication
+# CreateSession WITHOUT two-factor authentication
 
 If you want to use APIs that require authentication, next step is to log in.
 If you don't have email two-factor authentication turned on, you can use the below script.
@@ -31,17 +31,17 @@ If you don't have email two-factor authentication turned on, you can use the bel
 
 $username = "your_username"
 $password = "your_password"
-$userSession = Bluesky-Login -UserName $username -Password $password
+$session = Bluesky-CreateSession -UserName $username -Password $password
 
 ```
 
-If the call succeeds, $userSession will contain the authentication token needed to make 
+If the call succeeds, $session will contain the authentication token needed to make 
 subsequent authenticated API calls.
 
 &nbsp;
 
 
-# Log in WITH two-factor authentication
+# CreateSession WITH two-factor authentication
 
 If you have email two-factor authentication turned on, it requires two calls to "createSession".
 The first call results in Bluesky sending you an email with an auth token. The second call
@@ -53,10 +53,10 @@ $username = "your_username"
 $password = "your_password"
 
 # First call to generate auth token email - retrieve that and set $authToken
-$session = Bluesky-Login -UserName $username -Password $password
+$session = Bluesky-CreateSession -UserName $username -Password $password
 
 # Second call to use use auth token and log in
-$session = Bluesky-Login -UserName $username -Password $password -AuthFactorToken $authToken
+$session = Bluesky-CreateSession -UserName $username -Password $password -AuthFactorToken $authToken
 
 ```
 
@@ -68,7 +68,7 @@ Using the user session obtained above ⬆️
 
 
 ```powershell
-Bluesky-GetUnreadCount -UserSession $userSession
+Bluesky-GetUnreadCount -Session $session
 ```
 
 &nbsp;
@@ -90,6 +90,6 @@ Using the user session obtained above ⬆️
 
 ```powershell
 $text = "text you want to post"
-Bluesky-CreateTextPost -UserSession $userSession -Text $text
+Bluesky-CreateTextPost -Session $session -Text $text
 ```
 

@@ -1,15 +1,18 @@
 
 
 
+$InformationPreference = "Continue"
+
+
 # --------------------------------------------------------------------------------------------------------------------
 #
-#   Bluesky-Login
+#   Bluesky-CreateSession
 #
 #   Creates a session on the server.
 #   https://docs.bsky.app/docs/api/com-atproto-server-create-session
 #
 # --------------------------------------------------------------------------------------------------------------------
-function Bluesky-Login
+function Bluesky-CreateSession
 {
     param
     (
@@ -26,8 +29,11 @@ function Bluesky-Login
         "password" = $Password
     }
 
+    Write-Information "Url: $url"
+
     if ($AuthFactorToken -ne $null)
     {
+        Write-Information "Adding authFactorToken to body"
         $body["authFactorToken"] = $AuthFactorToken
     } 
 
@@ -35,13 +41,19 @@ function Bluesky-Login
     # Send request
     try
     {
+        Write-Information "Calling Invoke-WebRequest"
         $response = Invoke-WebRequest -Method POST -Uri $url -Headers $headers -Body ($body | ConvertTo-Json)
         $responseContent = ConvertFrom-Json $response.Content
+
+        Write-Information "responseContent: $responseContent"
 
         $ret = @{
             "UserName" = $UserName
             "PDS" = $PDS
-            "Response" = $responseContent
+            "AuthFactorTokenExists" = ($AuthFactorToken -ne $null)
+            "AccessJwt" = $responseContent.accessJwt
+            "RefreshJwt" = $responseContent.refreshJwt
+            "DID" = $responseContent.did
         }
 
         return $ret
@@ -57,21 +69,21 @@ function Bluesky-Login
 
 # --------------------------------------------------------------------------------------------------------------------
 #
-#   assertUserSession
+#   assertSession
 #
 # --------------------------------------------------------------------------------------------------------------------
-function assertUserSession
+function assertSession
 {
     param
     (
-        [Parameter(Mandatory=$true)] $UserSession
+        [Parameter(Mandatory=$true)] $Session
     )
 
-    if ($UserSession -eq $null) { throw "UserSession is null"}
-    if ($UserSession.PDS -eq $null) { throw "PDS is null"}
-    if ($UserSession.UserName -eq $null) { throw "UserName is null"}
-    if ($UserSession.Response.did -eq $null) { throw "did is null"}
-    if ($UserSession.Response.accessJwt -eq $null) { throw "accessJwt is null"}
+    Write-Information "assertSession"
+    if ($Session -eq $null) { throw "Session is null"} else { Write-Information "    Session is not null" }
+    if ($Session.PDS -eq $null) { throw "PDS is null"} else { Write-Information "    PDS is not null" }
+    if ($Session.UserName -eq $null) { throw "UserName is null"} else { Write-Information "    UserName is not null" }
+    if ($Session.AccessJwt -eq $null) { throw "AccessJwt is null"} else { Write-Information "    AccessJwt is not null" }
 
 }
 
@@ -89,30 +101,33 @@ function Bluesky-GetUnreadCount
 {
     param
     (
-        [Parameter(Mandatory=$true)] $UserSession
+        [Parameter(Mandatory=$true)] $Session
     )
 
 
     # Verify that the user session is valid
-    assertUserSession -UserSession $UserSession
+    assertSession -Session $Session
 
 
     # Set up variables
-    $pds = $UserSession.PDS
-    $accessJwt = $UserSession.Response.accessJwt
+    $pds = $Session.PDS
     $url = "https://$pds/xrpc/app.bsky.notification.getUnreadCount"
     $headers = @{
-        "Authorization" = "Bearer $accessJwt"
+        "Authorization" = "Bearer $($Session.AccessJwt)"
     }
+
+    Write-Information "Url: $url"
+    Write-Information "UserName: $($Session.UserName)"
 
     # Send request
     $response = Invoke-WebRequest -Method GET -Uri $url -Headers $headers
     $responseContent = ConvertFrom-Json $response.Content
 
-    # Create hashtable for return
+    Write-Information "responseContent: $responseContent"
+
+    # Create return
     $ret = @{
-        "url" = $url
-        "Response" = $responseContent
+        "Count" = $responseContent.count
     }
 
     return $ret
@@ -122,27 +137,29 @@ function Bluesky-GetUnreadCount
 
 # --------------------------------------------------------------------------------------------------------------------
 #
-#   Bluesky-Logout
+#   Bluesky-DeleteSession
 #
 #   Clears global state.
 #   (Calling deleteSession can delete the refreshJwt, but not the accessJwt - the latter just needs to expire.)
 #
 # --------------------------------------------------------------------------------------------------------------------
-function Bluesky-Logout
+function Bluesky-DeleteSession
 {
     param
     (
-        [Parameter(Mandatory=$true)] $UserSession
+        [Parameter(Mandatory=$true)] $Session
     )
 
     # Check stuff
-    assertUserSession -UserSession $UserSession
+    assertSession -Session $Session
 
     # Set up variables
-    $pds = $UserSession.PDS
-    $refreshJwt = $UserSession.Response.refreshJwt
+    $pds = $Session.PDS
+    $refreshJwt = $Session.Response.refreshJwt
     $url = "https://$pds/xrpc/com.atproto.server.deleteSession"
-    $headers = @{"Authorization" = "Bearer $refreshJwt"}
+    $headers = @{"Authorization" = "Bearer $($Session.RefreshJwt)"}
+
+    Write-Information "Url: $url"
 
     # Send request
     if(($pds -ne $null) -and ($refreshJwt -ne $null))
@@ -171,27 +188,19 @@ function Bluesky-GetProfile
     # Set up variables
     $url = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=$Actor"
 
+    Write-Information "Url: $url"
+
     # Send request
     try
     {
         $response = Invoke-WebRequest -Method GET -Uri $url
-        $responseContent = ConvertFrom-Json $response.Content
-
-        # Create hashtable for return
-        $ret = @{
-            "url" = $url
-            "Actor" = $Actor
-            "Response" = $responseContent
-        }
-
-        return $ret;
+        return (ConvertFrom-Json $response.Content)
     }
     catch
     {
         # Failed.
         throw "getProfile failed. $_"
     }
-
 }
 
 
@@ -206,21 +215,21 @@ function Bluesky-CreateTextPost
 {
     param
     (
-        [Parameter(Mandatory=$true)] $UserSession,
+        [Parameter(Mandatory=$true)] $Session,
         [Parameter(Mandatory=$true)] $Text
     )
 
     # Verify that the user session is valid
-    assertUserSession -UserSession $UserSession
+    assertSession -Session $Session
 
     # Set up variables 
-    $url = "https://$($UserSession.PDS)/xrpc/com.atproto.repo.createRecord"
+    $url = "https://$($Session.PDS)/xrpc/com.atproto.repo.createRecord"
     $headers = @{
         "Content-Type" = "application/json"
-        "Authorization" = "Bearer $($UserSession.Response.accessJwt)"
+        "Authorization" = "Bearer $($Session.AccessJwt)"
     }
     $body = @{
-        repo = $UserSession.Response.did
+        repo = $Session.DID
         collection = "app.bsky.feed.post"
         record = @{
             text = $Text
