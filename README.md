@@ -80,3 +80,16 @@ This doesn't require auth.
 ```powershell
 Bluesky-GetProfile -Actor "threddyrex.org"
 ```
+
+&nbsp;
+
+# Creating a text post
+
+Using the user session obtained above ⬆️
+
+
+```powershell
+$text = "text you want to post"
+Bluesky-CreateTextPost -UserSession $userSession -Text $text
+```
+
