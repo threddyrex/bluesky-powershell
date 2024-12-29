@@ -93,7 +93,7 @@ function Bluesky-GetUnreadCount
     )
 
 
-    # Check stuff
+    # Verify that the user session is valid
     assertUserSession -UserSession $UserSession
 
 
@@ -206,15 +206,18 @@ function Bluesky-CreateTextPost
 {
     param
     (
-        [Parameter(Mandatory=$true)] $Session,
+        [Parameter(Mandatory=$true)] $UserSession,
         [Parameter(Mandatory=$true)] $Text
     )
 
+    # Verify that the user session is valid
+    assertUserSession -UserSession $UserSession
+
     # Setup variables 
-    $url = "https://$($Session.PDS)/xrpc/com.atproto.repo.createRecord"
+    $url = "https://$($UserSession.PDS)/xrpc/com.atproto.repo.createRecord"
     $headers = @{
         "Content-Type" = "application/json"
-        "Authorization" = "Bearer $($Session.Response.accessJwt)"
+        "Authorization" = "Bearer $($UserSession.Response.accessJwt)"
     }
 
     # Create post record
@@ -224,7 +227,7 @@ function Bluesky-CreateTextPost
     }
 
     $body = @{
-        repo = $Session.Response.did
+        repo = $UserSession.Response.did
         collection = "app.bsky.feed.post"
         record = $post
     }
